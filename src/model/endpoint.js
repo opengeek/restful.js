@@ -1,14 +1,32 @@
 import assign from 'object-assign';
 import configurable from 'util/configurable';
-import entity from 'model/entity';
 
 export default function endpoint(url, parent) {
     var config = {
             _parent: parent,
             headers: {},
+            fullRequestInterceptors: [],
             requestInterceptors: [],
             responseInterceptors:[],
         };
+
+    /**
+     * Merge the local full request interceptors and the parent's ones
+     * @private
+     * @return {array} full request interceptors
+     */
+    function _getFullRequestInterceptors() {
+        var current = model,
+            fullRequestInterceptors = [];
+
+        while (current) {
+            fullRequestInterceptors = fullRequestInterceptors.concat(current.fullRequestInterceptors());
+
+            current = current._parent ? current._parent() : null;
+        }
+
+        return fullRequestInterceptors;
+    }
 
     /**
      * Merge the local request interceptors and the parent's ones
@@ -26,7 +44,7 @@ export default function endpoint(url, parent) {
         }
 
         return requestInterceptors;
-    };
+    }
 
     /**
      * Merge the local response interceptors and the parent's ones
@@ -44,7 +62,7 @@ export default function endpoint(url, parent) {
         }
 
         return responseInterceptors;
-    };
+    }
 
     /**
      * Merge the local headers and the parent's ones
@@ -56,13 +74,13 @@ export default function endpoint(url, parent) {
             headers = {};
 
         while (current) {
-            assign(headers, current.headers())
+            assign(headers, current.headers());
 
             current = current._parent ? current._parent() : null;
         }
 
         return headers;
-    };
+    }
 
     function _generateRequestConfig(url, params = {}, headers = {}, data = null) {
         var config = {
@@ -75,6 +93,27 @@ export default function endpoint(url, parent) {
         if (data) {
             config.data = data;
             config.requestInterceptors = _getRequestInterceptors();
+        }
+
+        var interceptors = _getFullRequestInterceptors();
+        for (let i in interceptors) {
+            let intercepted = interceptors[i](url, params, headers, data);
+
+            if (intercepted.url) {
+                config.url = intercepted.url;
+            }
+
+            if (intercepted.params) {
+                config.params = intercepted.params;
+            }
+
+            if (intercepted.headers) {
+                config.headers = intercepted.headers;
+            }
+
+            if (intercepted.data) {
+                config.params = intercepted.data;
+            }
         }
 
         return config;
@@ -157,4 +196,4 @@ export default function endpoint(url, parent) {
     configurable(model, config);
 
     return model;
-};
+}

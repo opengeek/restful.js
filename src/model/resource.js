@@ -6,6 +6,16 @@ export default function resource(refEndpoint) {
     }
 
     model = assign(model, {
+        addFullRequestInterceptor(interceptor) {
+            refEndpoint.fullRequestInterceptors().push(interceptor);
+
+            return model;
+        },
+
+        fullRequestInterceptors() {
+            return refEndpoint.fullRequestInterceptors();
+        },
+
         addRequestInterceptor(interceptor) {
             refEndpoint.requestInterceptors().push(interceptor);
 
@@ -13,7 +23,7 @@ export default function resource(refEndpoint) {
         },
 
         requestInterceptors() {
-            return refEndpoint.requestInterceptors()
+            return refEndpoint.requestInterceptors();
         },
 
         addResponseInterceptor(interceptor) {
